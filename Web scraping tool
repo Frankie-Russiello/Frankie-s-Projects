@@ -1,0 +1,49 @@
+import requests
+from bs4 import BeautifulSoup
+import sqlite3
+import schedule
+import time
+
+# Function to scrape data from the website
+def scrape_website():
+    url = "https://www.example.com"  # Replace with the URL of the website you want to scrape
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, "html.parser")
+        
+        # Extract the data you need from the HTML using BeautifulSoup methods
+        # For example, let's extract all the links on the page
+        links = soup.find_all("a")
+        
+        # Store the extracted data in a database
+        conn = sqlite3.connect("scraped_data.db")  # Connect to the database
+        c = conn.cursor()
+        
+        # Create a table if it doesn't exist
+        c.execute("CREATE TABLE IF NOT EXISTS scraped_links (link TEXT)")
+        
+        # Insert the scraped links into the table
+        for link in links:
+            c.execute("INSERT INTO scraped_links VALUES (?)", (link["href"],))
+        
+        conn.commit()  # Save the changes
+        conn.close()  # Close the connection
+        print("Data has been scraped and stored successfully!")
+    else:
+        print("Error: Failed to retrieve data from the website.")
+
+# Define a function to handle exceptions during scraping
+def handle_exceptions(e):
+    print("An error occurred during scraping:", str(e))
+
+# Schedule the scraping job to run every day at a specific time
+schedule.every().day.at("10:00").do(scrape_website)
+
+# Run the scheduler continuously
+while True:
+    try:
+        schedule.run_pending()
+        time.sleep(1)
+    except Exception as e:
+        handle_exceptions(e)
